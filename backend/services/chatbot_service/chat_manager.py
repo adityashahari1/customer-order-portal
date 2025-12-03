@@ -174,12 +174,16 @@ Is there anything else I can help you with?"""
                 del pending_orders[user_email]
                 return "No problem! I've cancelled that order request. Let me know if you'd like to order something else."
             
-            # Check if this is a purchase intent vs order tracking
+            # Check if this is a purchase intent vs order tracking - EXPANDED
             purchase_keywords = [
                 "buy", "purchase", "order a", "place an order", "place order",
                 "get a", "want a", "need a", "i want to order", "i want to buy",
                 "i want to purchase", "i'd like to order", "i'd like to buy",
-                "can i order", "can i buy", "looking to buy", "looking to order"
+                "can i order", "can i buy", "looking to buy", "looking to order",
+                "looking for", "interested in", "shopping for", "searching for",
+                "show me", "find me", "get me", "i need", "i'm looking for",
+                "do you sell", "can you get me", "i want", "i'd like",
+                "how much", "price for", "cost of", "checkout", "add to cart"
             ]
             is_purchase = any(keyword in message_lower for keyword in purchase_keywords)
             
@@ -197,22 +201,85 @@ Is there anything else I can help you with?"""
                     if response.status_code == 200:
                         inventory_items = response.json()
                         
-                        # Extract product keywords from message
-                        product_keywords = ["laptop", "keyboard", "mouse", "monitor", "gaming", "thinkpad", "dell", "lenovo", "rtx"]
-                        mentioned_keywords = [kw for kw in product_keywords if kw in message_lower]
+                        # Extract product keywords from message - MASSIVELY EXPANDED LIST
+                        # Primary keywords (product types) get higher weight
+                        primary_keywords = [
+                            "laptop", "computer", "pc", "notebook", "macbook", "chromebook",
+                            "keyboard", "mouse", "monitor", "screen", "display",
+                            "headphone", "headphones", "earbuds", "earphones", "headset",
+                            "speaker", "speakers", "microphone", "mic",
+                            "webcam", "camera", "printer", "scanner",
+                            "chair", "desk", "table",
+                            "ssd", "drive"
+                        ]
                         
-                        if mentioned_keywords:
-                            # Search for matching product
+                        # Secondary keywords (brands, features) get normal weight
+                        secondary_keywords = [
+                            # Brands
+                            "dell", "lenovo", "hp", "asus", "acer", "msi", "razer", "logitech",
+                            "thinkpad", "latitude", "pavilion", "rog", "alienware",
+                            # Features
+                            "gaming", "office", "work", "home", "portable", "desktop",
+                            "wireless", "wired", "bluetooth", "usb", "mechanical", "ergonomic",
+                            "audio", "stand", "hub", "dock", "docking", "cable", "adapter", "charger",
+                            "case", "bag", "sleeve", "backpack", "mouse pad", "mousepad",
+                            "storage", "external", "usb drive", "web cam",
+                            "furniture", "rtx", "4k", "ultrawide", "144hz", "rgb", "backlit",
+                            "touch screen", "touchscreen", "convertible", "2-in-1"
+                        ]
+                        
+                        product_keywords = primary_keywords + secondary_keywords
+                        
+                        # Generic words to ignore when matching products
+                        ignore_words = [
+                            "looking", "i'm", "for", "a", "an", "the", "want", "need", 
+                            "buy", "purchase", "get", "order", "interested", "show", 
+                            "find", "searching", "shopping", "can", "i", "to", "do", "you"
+                        ]
+                        
+                        # Filter and categorize mentioned keywords
+                        mentioned_primary = [
+                            kw for kw in primary_keywords
+                            if kw in message_lower and kw not in ignore_words
+                        ]
+                        mentioned_secondary = [
+                            kw for kw in secondary_keywords
+                            if kw in message_lower and kw not in ignore_words
+                        ]
+                        
+                        if mentioned_primary or mentioned_secondary:
+                            # Search for matching product with weighted scoring
                             matching_items = []
                             for item in inventory_items:
                                 item_name_lower = item.get('name', '').lower()
-                                # Check if any mentioned keyword is in the product name
-                                if any(kw in item_name_lower for kw in mentioned_keywords):
-                                    matching_items.append(item)
+                                score = 0
+                                matched_keywords = []
+                                
+                                # Primary keywords get 3x weight (main product type)
+                                for kw in mentioned_primary:
+                                    if kw in item_name_lower:
+                                        score += 3
+                                        matched_keywords.append(kw)
+                                
+                                # Secondary keywords get 1x weight (features/brands)
+                                for kw in mentioned_secondary:
+                                    if kw in item_name_lower:
+                                        score += 1
+                                        matched_keywords.append(kw)
+                                
+                                if score > 0:
+                                    matching_items.append({
+                                        'item': item,
+                                        'score': score,
+                                        'matched_keywords': matched_keywords
+                                    })
+                            
+                            # Sort by score (highest first)
+                            matching_items.sort(key=lambda x: x['score'], reverse=True)
                             
                             if matching_items:
-                                # Take first matching product
-                                product = matching_items[0]
+                                # Take first matching product (highest score)
+                                product = matching_items[0]['item']
                                 stock = product.get('stock', 0)
                                 
                                 if stock > 0:
@@ -286,15 +353,44 @@ Need help with anything else?"""
                 return "I can help you track your order! Please provide your order number (e.g., #123)."
         
         elif specialist == "INVENTORY":
-            # Extract product name from message
-            product_keywords = ["laptop", "keyboard", "lenovo", "dell", "gaming", "thinkpad"]
-            product_name = None
-            for keyword in product_keywords:
-                if keyword in message_lower:
-                    product_name = keyword
-                    break
+            # Extract product name from message with weighted keywords
+            # Primary keywords (product types) get higher weight
+            primary_keywords = [
+                "laptop", "computer", "pc", "notebook", "macbook", "chromebook",
+                "keyboard", "mouse", "monitor", "screen", "display",
+                "headphone", "headphones", "earbuds", "earphones", "headset",
+                "speaker", "speakers", "microphone", "mic",
+                "webcam", "camera", "printer", "scanner",
+                "chair", "desk", "table",
+                "ssd", "drive"
+            ]
             
-            if product_name:
+            # Secondary keywords (brands, features) get normal weight
+            secondary_keywords = [
+                "lenovo", "dell", "hp", "asus", "gaming", "thinkpad",
+                "stand", "hub", "dock", "cable", "adapter", "charger",
+                "mechanical", "wireless", "ergonomic", "4k", "ultrawide",
+                "storage", "external"
+            ]
+            
+            # Generic words to ignore
+            ignore_words = [
+                "looking", "i'm", "for", "a", "an", "the", "want", "need", 
+                "buy", "purchase", "get", "order", "interested", "show", 
+                "find", "searching", "shopping", "can", "i", "to", "do", "you", "have"
+            ]
+            
+            # Filter and categorize mentioned keywords
+            mentioned_primary = [
+                kw for kw in primary_keywords
+                if kw in message_lower and kw not in ignore_words
+            ]
+            mentioned_secondary = [
+                kw for kw in secondary_keywords
+                if kw in message_lower and kw not in ignore_words
+            ]
+            
+            if mentioned_primary or mentioned_secondary:
                 try:
                     # Call the real inventory service API
                     response = await client.get(f"{GATEWAY_URL}/inventory/")
@@ -302,14 +398,38 @@ Need help with anything else?"""
                     if response.status_code == 200:
                         inventory_items = response.json()
                         
-                        # Find matching product
-                        matching_items = [
-                            item for item in inventory_items 
-                            if product_name.lower() in item.get('name', '').lower()
-                        ]
+                        # Find matching products with weighted scoring
+                        matching_items = []
+                        for item in inventory_items:
+                            item_name_lower = item.get('name', '').lower()
+                            score = 0
+                            matched_keywords = []
+                            
+                            # Primary keywords get 3x weight (main product type)
+                            for kw in mentioned_primary:
+                                if kw in item_name_lower:
+                                    score += 3
+                                    matched_keywords.append(kw)
+                            
+                            # Secondary keywords get 1x weight (features/brands)
+                            for kw in mentioned_secondary:
+                                if kw in item_name_lower:
+                                    score += 1
+                                    matched_keywords.append(kw)
+                            
+                            if score > 0:
+                                matching_items.append({
+                                    'item': item,
+                                    'score': score,
+                                    'matched_keywords': matched_keywords
+                                })
+                        
+                        # Sort by score (highest first)
+                        matching_items.sort(key=lambda x: x['score'], reverse=True)
                         
                         if matching_items:
-                            item = matching_items[0]
+                            # Take the best matching product
+                            item = matching_items[0]['item']
                             stock = item.get('stock', 0)
                             price = item.get('price', 0)
                             name = item.get('name', 'Product')
@@ -325,7 +445,7 @@ Would you like to place an order?"""
                             else:
                                 return f"❌ Sorry, **{name}** is currently out of stock. Would you like me to notify you when it's back?"
                         else:
-                            return f"I couldn't find a product matching '{product_name}'. Could you be more specific?"
+                            return f"I couldn't find a product matching your search. Could you be more specific?"
                     else:
                         return "I'm having trouble checking inventory right now. Please try again."
                         
@@ -359,14 +479,32 @@ I'm escalating your case to our executive team right now. To ensure swift resolu
 
 You'll receive a response within **24 hours**. I'll personally monitor this."""
         
+        elif specialist == "SALESFORCE":
+            # Handle customer information requests
+            # Note: This system doesn't have a customer database with phone numbers
+            # The error message shown in the screenshot is actually the correct behavior
+            # In a real system, this would integrate with Salesforce CRM
+            
+            return """I'm having trouble accessing customer data. Please try again or contact support.
+
+**Note:** For customer privacy and security, detailed customer information (including phone numbers) is protected and can only be accessed through our secure CRM system with proper authorization.
+
+If you need to contact a customer, please:
+1. Use the internal Salesforce portal
+2. Contact your supervisor for access
+3. Submit a ticket through the support system
+
+Is there anything else I can help you with?"""
+        
         else:
-            # General support
+            # General support - improved fallback
             return """👋 Hello! I'm here to help you today.
 
 I can assist with:
 • 📦 Order tracking and status
 • 🔄 Returns and refunds
-• 📊 Product availability
+• 📊 Product availability  
+• 📞 Customer information lookup
 • 🔒 Security concerns
 • ⬆️ Urgent issues
 

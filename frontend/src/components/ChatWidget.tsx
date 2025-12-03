@@ -62,7 +62,7 @@ const ChatWidget = () => {
             )}
 
             {isOpen && (
-                <div className="bg-white rounded-lg shadow-xl w-80 h-96 flex flex-col border border-gray-200">
+                <div className="bg-white rounded-lg shadow-xl w-[600px] h-[700px] flex flex-col border border-gray-200">
                     <div className="bg-indigo-600 text-white p-4 rounded-t-lg flex justify-between items-center">
                         <h3 className="font-medium">AI Assistant</h3>
                         <button onClick={() => setIsOpen(false)} className="hover:text-gray-200">
