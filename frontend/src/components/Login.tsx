@@ -6,7 +6,6 @@ const Login: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [showDemoHint, setShowDemoHint] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -25,7 +24,6 @@ const Login: React.FC = () => {
       navigate('/');
     } else {
       setError('Invalid username or password');
-      setShowDemoHint(true);
     }
   };
 
@@ -71,26 +69,6 @@ const Login: React.FC = () => {
             Sign In
           </button>
         </form>
-
-        {showDemoHint && (
-          <div style={styles.demoHint}>
-            <strong>Demo Credentials:</strong>
-            <div style={styles.demoCredentials}>
-              <div>👤 Admin: <code>admin</code> / <code>12345</code></div>
-              <div>👤 Customer: <code>customer</code> / <code>demo123</code></div>
-            </div>
-          </div>
-        )}
-
-        <div style={styles.footer}>
-          <button
-            type="button"
-            onClick={() => setShowDemoHint(!showDemoHint)}
-            style={styles.hintButton}
-          >
-            {showDemoHint ? 'Hide' : 'Show'} Demo Credentials
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -172,33 +150,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: '#c33',
     fontSize: '14px',
     textAlign: 'center'
-  },
-  demoHint: {
-    marginTop: '20px',
-    padding: '16px',
-    background: '#f0f9ff',
-    border: '1px solid #bae6fd',
-    borderRadius: '8px',
-    fontSize: '13px'
-  },
-  demoCredentials: {
-    marginTop: '10px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-    fontFamily: 'monospace'
-  },
-  footer: {
-    marginTop: '20px',
-    textAlign: 'center'
-  },
-  hintButton: {
-    background: 'none',
-    border: 'none',
-    color: '#667eea',
-    cursor: 'pointer',
-    fontSize: '13px',
-    textDecoration: 'underline'
   }
 };
 
