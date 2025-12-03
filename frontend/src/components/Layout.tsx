@@ -1,8 +1,16 @@
-import { Link, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, ShoppingBag, Package, Users, BarChart2, LogOut, RotateCcw, Building2 } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const location = useLocation()
+    const navigate = useNavigate()
+    const { user, logout } = useAuth()
+
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
 
     const navigation = [
         { name: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -53,14 +61,24 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </div>
                     <div className="flex-shrink-0 flex border-t border-slate-800 p-4">
                         <div className="flex items-center w-full">
-                            <div className="h-9 w-9 rounded-full bg-slate-700 flex items-center justify-center">
-                                <span className="text-white font-semibold text-sm">PM</span>
+                            <div className="h-9 w-9 rounded-full bg-indigo-500 flex items-center justify-center">
+                                <span className="text-white font-semibold text-sm">
+                                    {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                </span>
                             </div>
                             <div className="ml-3 flex-1">
-                                <p className="text-sm font-medium text-white">Procurement Manager</p>
-                                <p className="text-xs font-medium text-slate-400">Admin Access</p>
+                                <p className="text-sm font-medium text-white">{user?.name || 'User'}</p>
+                                <p className="text-xs font-medium text-slate-400">
+                                    {user?.role === 'admin' ? 'Admin Access' : 'Customer'}
+                                </p>
                             </div>
-                            <LogOut className="ml-auto h-5 w-5 text-slate-400 hover:text-white cursor-pointer" />
+                            <button
+                                onClick={handleLogout}
+                                className="ml-auto p-1 rounded hover:bg-slate-800 transition-colors"
+                                title="Logout"
+                            >
+                                <LogOut className="h-5 w-5 text-slate-400 hover:text-white cursor-pointer" />
+                            </button>
                         </div>
                     </div>
                 </div>
